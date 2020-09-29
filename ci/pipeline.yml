@@ -1,0 +1,37 @@
+﻿# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+- master
+
+variables:
+  buildConfiguration: 'Release'
+
+jobs:
+- job: Linux
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - script: dotnet restore
+    displayName: 'dotnet restore'
+
+  - script: dotnet build -c $(buildConfiguration) -o out
+    displayName: 'dotnet build $(buildConfiguration)'
+  
+  - task: Docker@1
+    displayName: Container registry login
+    inputs:
+      containerregistrytype: Container Registry
+      dockerRegistryEndpoint: DockerHub
+      command: login
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  
+  - script: docker build -t roymoran/rap -f ci/Dockerfile ./
+    displayName: 'build image'
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    
+  - script: docker push roymoran/rap
+    displayName: 'push image'
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
