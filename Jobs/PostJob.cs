@@ -42,10 +42,10 @@ namespace RAP.Jobs
                     if (accessToken != null)
                     {
                         // update record with refreshed token
-                        redditUser.RefreshToken = accessToken.RefreshToken;
+                        redditUser.AccessToken = accessToken.AccessToken;
                         redditUser.TokenExpiresAt = accessToken.TokenExpiration;
                         redditUser.Scope = accessToken.Scope;
-                        await redditUser.UpdateAsync(redditUser);
+                        await _redditUserStorage.UpdateAsync(redditUser);
                     }
 
                     var subs = post.Subreddits.Split(",");
@@ -64,6 +64,7 @@ namespace RAP.Jobs
                     }
 
                     // reset next send
+                    post.LastPost = DateTimeOffset.UtcNow;
                     post.NextPost = DateTimeOffset.UtcNow.AddSeconds(post.IntervalSeconds);
                     await _postRecurrenceStorage.UpdateAsync(post);
                 }

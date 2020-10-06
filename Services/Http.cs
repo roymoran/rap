@@ -61,7 +61,10 @@ namespace RAP.Services
             try
             {
                 responseJson = await result.Content.ReadAsStringAsync();
-                return JsonConvert.DeserializeObject<T>(responseJson);
+                return JsonConvert.DeserializeObject<T>(responseJson, new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore
+                });
             }
             catch (Exception parseException)
             {
