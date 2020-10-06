@@ -22,6 +22,7 @@ namespace RAP.Jobs
             _postRecurrenceStorage = new PostRecurrenceEntity(config["ConnectionString"]);
             _redditUserStorage = new RedditUserEntity(config["ConnectionString"]);
             _redditService = redditService;
+            _logger.LogInformation("Starting PostJob");
         }
 
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
