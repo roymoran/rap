@@ -28,7 +28,7 @@ namespace RAP.Persistence.Primary.Entities
             Email = email;
             RedditUserId = redditUserId;
             IntervalSeconds = MapValueToSeconds(intervalSeconds);
-            NextPost = DateTimeOffset.UtcNow.AddSeconds(IntervalSeconds);
+            NextPost = DateTimeOffset.UtcNow.AddMinutes(3);
         }
 
         public PostRecurrenceEntity(string connectionString) : base(connectionString)
