@@ -19,6 +19,7 @@ namespace RAP.Jobs
         public PostJob(ILogger<PostJob> logger, IRedditService redditService, IConfiguration config)
         {
             _logger = logger;
+            _logger.LogCritical($"Starting post job. App Version {new Settings().AppVersion}");
             _postRecurrenceStorage = new PostRecurrenceEntity(config["ConnectionString"]);
             _redditUserStorage = new RedditUserEntity(config["ConnectionString"]);
             _redditService = redditService;

@@ -42,7 +42,6 @@ namespace RAP
             });
 
             Settings settings = Configuration.Get<Settings>();
-
             services.AddDbContext<DatabaseContext>(options => options.UseMySql(settings.ConnectionString));
             services.AddSingleton<IRedditService>(p => new RedditService(settings.RedditAppId, settings.RedditAppSecret, settings.RedditRedirectUri));
             services.AddHostedService<PostJob>();
