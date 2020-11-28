@@ -29,47 +29,56 @@ namespace RAP.Jobs
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var posts = await _postRecurrenceStorage.FindAllAsync();
-                foreach (var post in posts)
+                try
                 {
-                    if (!ShouldStart(post.NextPost))
+                    var posts = await _postRecurrenceStorage.FindAllAsync();
+                    foreach (var post in posts)
                     {
-                        continue;
-                    }
-
-                    var redditUser = await _redditUserStorage.FindAsync(post.RedditUserId);
-                    var accessToken = await _redditService.RefreshIfExpiredAsync(redditUser.RefreshToken, redditUser.TokenExpiresAt, redditUser.AccessToken);
-                    if (accessToken != null)
-                    {
-                        // update record with refreshed token
-                        redditUser.AccessToken = accessToken.AccessToken;
-                        redditUser.TokenExpiresAt = accessToken.TokenExpiration;
-                        redditUser.Scope = accessToken.Scope;
-                        await _redditUserStorage.UpdateAsync(redditUser);
-                    }
-
-                    var subs = post.Subreddits.Split(",");
-
-                    foreach (var sub in subs)
-                    {
-                        try
+                        if (!ShouldStart(post.NextPost))
                         {
-                            await _redditService.CreatePostAsync(sub, post.Title, post.Body);
+                            continue;
                         }
-                        catch (Exception ex)
+
+                        var redditUser = await _redditUserStorage.FindAsync(post.RedditUserId);
+                        var accessToken = await _redditService.RefreshIfExpiredAsync(redditUser.RefreshToken, redditUser.TokenExpiresAt, redditUser.AccessToken);
+                        if (accessToken != null)
                         {
-                            _logger.LogCritical($"Post failed for Post Id: {post.Id}, on Subreddit {sub}");
-                            _logger.LogCritical(ex.Message, ex.StackTrace);
+                            // update record with refreshed token
+                            redditUser.AccessToken = accessToken.AccessToken;
+                            redditUser.TokenExpiresAt = accessToken.TokenExpiration;
+                            redditUser.Scope = accessToken.Scope;
+                            await _redditUserStorage.UpdateAsync(redditUser);
                         }
+
+                        var subs = post.Subreddits.Split(",");
+
+                        foreach (var sub in subs)
+                        {
+                            try
+                            {
+                                await _redditService.CreatePostAsync(sub, post.Title, post.Body);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogCritical($"Post failed for Post Id: {post.Id}, on Subreddit {sub}");
+                                _logger.LogCritical(ex.Message, ex.StackTrace);
+                            }
+                        }
+
+                        // reset next send
+                        post.LastPost = DateTimeOffset.UtcNow;
+                        post.NextPost = DateTimeOffset.UtcNow.AddSeconds(post.IntervalSeconds);
+                        await _postRecurrenceStorage.UpdateAsync(post);
                     }
 
-                    // reset next send
-                    post.LastPost = DateTimeOffset.UtcNow;
-                    post.NextPost = DateTimeOffset.UtcNow.AddSeconds(post.IntervalSeconds);
-                    await _postRecurrenceStorage.UpdateAsync(post);
+                    await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
                 }
-
-                await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+                catch (Exception ex)
+                {
+                    _logger.LogCritical($"Post job through unhandled exception. Will try to continue.");
+                    _logger.LogCritical(ex.Message, ex.StackTrace);
+                    await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+                }
             }
         }
 
